@@ -56,9 +56,17 @@
         (println "loading " name)
         (load-sound name path))))
 
-(defn sound-button [name]
-  [:button name]
-  )
+
+(defn play-audio-buffer [abuff]
+  (let [source (.createBufferSource context)]
+    (set! (.-buffer source) abuff)
+    (.connect source (.-destination context))
+    (.start source)))
+
+(defn play-sound-by-name [name]
+  (let [buffer (get (:buffer-map @app-state) name)]
+    (play-audio-buffer buffer)))
+
 
 (defn ui []
   [:div
@@ -67,7 +75,7 @@
    [:div {:class "sounds"}
     (for [[name buff] (:buffer-map @app-state)]
       ^{:key (str "tr-" name)}
-      [sound-button name]
+      [:button {:on-click #(play-sound-by-name name)} name]
       )]
    [:div
     [:h3 "app state"]
@@ -75,6 +83,7 @@
     ]
    ]
   )
+
 
 (defn ^:dev/after-load start []
     (println "starting app")
