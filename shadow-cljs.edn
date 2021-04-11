@@ -1,15 +1,17 @@
 ;; shadow-cljs configuration
-{:source-paths ["src/main"
-                "src/test"]
+{:source-paths ["src"]
  :nrepl {:port 9000}
  :dependencies [
                 [cider/cider-nrepl "0.25.5"]
-                [cljs-bach "0.3.0"]
+                [cljs-ajax "0.8.3"]
+                [reagent "1.0.0"]
                 ]
 
- :dev-http {8020 "public"}
 
  :builds {:app {:target :browser
                 :output-dir "public/js"
                 :asset-path "/js"
-                :modules {:main {:entries [core]}}}}}
+                :modules {:main {:entries [app.core]}}
+                :devtools {:http-root "public"
+                           :http-port 8020}
+                }}}
