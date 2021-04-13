@@ -12,8 +12,7 @@
 
 (defonce app-state (r/atom {
                             :audio-on false
-                            :sounds {}
-                            :irs {}
+                            :abuff-map {}
                             }))
 
 (defonce resp-chan (chan))
@@ -21,17 +20,15 @@
 (defonce context (AudioContext.))
 
 
-(def play-sound-paths [
-                        ["cow" "assets/audio/cow.wav"]
-                        ["bell" "assets/audio/counter-bell.wav"]
-                        ["cat" "assets/audio/cat-meaow.wav"]
-                        ["lodge" "assets/audio/Masonic Lodge.wav"]
-                      ])
+(def sound-paths [
+                   ["cow" "assets/audio/cow.wav"]
+                   ["bell" "assets/audio/counter-bell.wav"]
+                   ["cat" "assets/audio/cat-meaow.wav"]
+                   ["garage" "assets/audio/Parking Garage.wav"]
+                   ["lodge" "assets/audio/Masonic Lodge.wav"]
+                   ["space" "assets/audio/On a Star.wav"]
+                 ])
 
-;; TODO: load in
-(def ir-sound-paths [
-                     ["lodge" "assets/audio/Masonic Lodge.wav"]
-                     ])
 
 
 (defn start-audio [e]
@@ -55,15 +52,27 @@
             (.decodeAudioData context (<! resp-chan) (fn [buff] (put! out buff)))))
     out))
 
-(defn load-sound [name uri]
+(defn load-sound-asset [uri]
   (let [resp-chan (load-sound-path uri)
         dec-chan (decode-resp-data resp-chan)]
+    dec-chan)
+  )
+
+(defn load-sound-to-state [name uri]
+  (let [in (load-sound-asset uri)]
     (go
       (while true
-        (let [buff (<! dec-chan)]
-          (swap! app-state update :sounds #(assoc % name buff)))))))
-;; (load-sound "cow" "assets/audio/cow.wav")
+        (let [buff (<! in)]
+          (swap! app-state update :abuff-map #(assoc % name buff))
+          )))))
 
+(defn load-ir-to-state [name uri]
+  (let [in (load-sound-asset uri)]
+    (go
+      (while true
+        (let [buff (<! in)]
+          (swap! app-state update :abuff-map #(assoc % name buff))
+          )))))
 
 (defn create-audio-source [abuff]
  (let [source (.createBufferSource context)]
@@ -77,30 +86,60 @@
         cnv))
 
 (defn play-sound-by-name [name]
-  (let [buffer (get (:sounds @app-state) name)
+  (let [buffer (get (:abuff-map @app-state) name)
         source (create-audio-source buffer)]
     (.connect source (.-destination context))
     (.start source)))
 
+;; todo make play-sound-thru-conv with buffer args
 
 (defn play-sound-thru-conv [sound-name cnv-name]
-  (let [source (create-audio-source (get (:sounds @app-state) sound-name))
-        cnv (create-convolver (get (:sounds @app-state) cnv-name))]
+  (let [source (create-audio-source (get (:abuff-map @app-state) sound-name))
+        cnv (create-convolver (get (:abuff-map @app-state) cnv-name))]
     (.connect (.connect source cnv) (.-destination context))
     (.start source)
     ))
 
-;; (play-sound-thru-conv "cat" "lodge")
+
+(defn drag-handler [e]
+  ; set event data
+  (println "dragging " (.. e -target -id) " element")
+  (.setData e.dataTransfer "src" (.. e -target -id)))
+
+(defn drop-handler [e]
+  (println "dropping " (.. e -target -id) " element")
+  (.preventDefault e)
+  (let [src (.getData e.dataTransfer "src")
+        cnv (.. e -target -id)]
+    (play-sound-thru-conv src cnv)))
 
 (defn ui []
   [:div
    [:h1 "Coinvolver"]
-   [:button {:on-click start-audio} "Start Audio"]
+   [:h2 "sounds"]
    [:div {:class "sounds"}
-    (for [[name buff] (:sounds @app-state)]
+    (for [name ["cow" "bell" "cat"]]
       ^{:key (str "tr-" name)}
-      [:button {:on-click #(play-sound-by-name name)} name]
-      )]
+      [:button {:on-click #(play-sound-by-name name)
+                :draggable true
+                :onDragStart drag-handler
+                :onDrop drop-handler
+                :onDragOver (fn [e] (.preventDefault e))
+                :id name
+                }
+       name])]
+   [:h2 "spaces"]
+   [:div {:class "irs"}
+    (for [name ["lodge" "space" "garage"]]
+      ^{:key (str "tr-" name)}
+      [:button {:on-click #(play-sound-by-name name)
+                :draggable true
+                :onDragStart drag-handler
+                :onDrop drop-handler
+                :onDragOver (fn [e] (.preventDefault e))
+                :id name
+                }
+       name])]
    [:div
     [:h3 "app state"]
     [:p [:code (str @app-state)]]
@@ -112,8 +151,8 @@
 (defn ^:dev/after-load start []
     (println "starting app")
     (doall
-        (for [[name path] play-sound-paths]
-            (load-sound name path)))
+        (for [[name path] sound-paths]
+            (load-sound-to-state name path)))
     (rdom/render [ui] (d/getElement "ui")))
 
 (defn ^:export main []
@@ -121,3 +160,4 @@
 
 (defn stop []
   (println "Stopping..."))
+(start)
