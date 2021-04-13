@@ -25,8 +25,9 @@
                    ["bell" "assets/audio/counter-bell.wav"]
                    ["cat" "assets/audio/cat-meaow.wav"]
                    ["garage" "assets/audio/Parking Garage.wav"]
-                   ["lodge" "assets/audio/Masonic Lodge.wav"]
                    ["space" "assets/audio/On a Star.wav"]
+                   ["opera" "assets/audio/opera.wav"]
+                   ["underwater" "assets/audio/underwater.wav"]
                  ])
 
 
@@ -118,7 +119,7 @@
    [:h1 "Coinvolver"]
    [:h2 "sounds"]
    [:div {:class "sounds"}
-    (for [name ["cow" "bell" "cat"]]
+    (for [name ["cow" "bell" "cat" "opera"]]
       ^{:key (str "tr-" name)}
       [:button {:on-click #(play-sound-by-name name)
                 :draggable true
@@ -130,7 +131,7 @@
        name])]
    [:h2 "spaces"]
    [:div {:class "irs"}
-    (for [name ["lodge" "space" "garage"]]
+    (for [name ["space" "garage" "underwater"]]
       ^{:key (str "tr-" name)}
       [:button {:on-click #(play-sound-by-name name)
                 :draggable true
