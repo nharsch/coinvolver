@@ -1,6 +1,7 @@
 (ns app.core
   (:require
    [goog.dom :as d]
+   [clojure.browser.repl :as repl]
    [goog.events :as events]
    [ajax.core :as ajax]
    [ajax.protocols :as protocol]
@@ -161,4 +162,8 @@
 
 (defn stop []
   (println "Stopping..."))
+
 (start)
+
+
+;; (js/window.alert "test")
