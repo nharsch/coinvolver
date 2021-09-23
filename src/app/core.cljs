@@ -5,7 +5,7 @@
    [goog.events :as events]
    [ajax.core :as ajax]
    [ajax.protocols :as protocol]
-   [cljs.core.async :as async :refer [>! <! chan put!]]
+   [cljs.core.async :as async :refer [>! <! chan put! take!]]
    [reagent.core :as r]
    [reagent.dom :as rdom]
    )
@@ -16,7 +16,6 @@
                             :abuff-map {}
                             }))
 
-(defonce resp-chan (chan))
 (defonce AudioContext js/window.AudioContext)
 (defonce context (AudioContext.))
 
@@ -32,12 +31,6 @@
                  ])
 
 
-
-(defn start-audio [e]
-  (println "audio started")
-   (swap! app-state update :audio-on (fn [] true)))
-
-
 (defn load-sound-path [uri]
   (let [out (chan 1)]
     (ajax/GET uri {:response-format {:type :arraybuffer
@@ -45,36 +38,27 @@
                                     :description "audio"
                                     :content-type "audio/wave"
                                     }
-                   :handler (fn [resp] (put! out resp))})
+                   :handler (fn [resp] (put! out resp))})  ; TODO: understand why we need put! here
     out))
 
-(defn decode-resp-data [resp-chan]
+
+(defn decode-resp-data [array-buff]
   (let [out (chan 1)]
-    (go (while true
-            (.decodeAudioData context (<! resp-chan) (fn [buff] (put! out buff)))))
+    (.decodeAudioData context array-buff #(put! out %))
     out))
 
-(defn load-sound-asset [uri]
-  (let [resp-chan (load-sound-path uri)
-        dec-chan (decode-resp-data resp-chan)]
-    dec-chan)
-  )
+(defn add-buffer-to-state [name buffer]
+  (swap! app-state update-in [:abuff-map name] (fn [] buffer)))
 
 (defn load-sound-to-state [name uri]
-  (let [in (load-sound-asset uri)]
-    (go
-      (while true
-        (let [buff (<! in)]
-          (swap! app-state update :abuff-map #(assoc % name buff))
-          )))))
-
-(defn load-ir-to-state [name uri]
-  (let [in (load-sound-asset uri)]
-    (go
-      (while true
-        (let [buff (<! in)]
-          (swap! app-state update :abuff-map #(assoc % name buff))
-          )))))
+  (go
+    (while true
+      (->> uri
+           (load-sound-path)
+           (<!)
+           (decode-resp-data)
+           (<!)
+           (add-buffer-to-state name)))))
 
 (defn create-audio-source [abuff]
  (let [source (.createBufferSource context)]
@@ -88,23 +72,20 @@
         cnv))
 
 (defn play-sound-by-name [name]
-  (let [buffer (get (:abuff-map @app-state) name)
+  (let [buffer (get-in @app-state [:abuff-map name])
         source (create-audio-source buffer)]
     (.connect source (.-destination context))
     (.start source)))
 
-;; todo make play-sound-thru-conv with buffer args
 
 (defn play-sound-thru-conv [sound-name cnv-name]
-  (let [source (create-audio-source (get (:abuff-map @app-state) sound-name))
-        cnv (create-convolver (get (:abuff-map @app-state) cnv-name))]
+  (let [source (create-audio-source (get-in @app-state [:abuff-map sound-name]))
+        cnv (create-convolver (get-in @app-state [:abuff-map cnv-name]))]
     (.connect (.connect source cnv) (.-destination context))
-    (.start source)
-    ))
-
+    (.start source)))
 
 (defn drag-handler [e]
-  ; set event data
+  ; set source id in event data
   (println "dragging " (.. e -target -id) " element")
   (.setData e.dataTransfer "src" (.. e -target -id)))
 
@@ -164,6 +145,3 @@
   (println "Stopping..."))
 
 (start)
-
-
-;; (js/window.alert "test")
