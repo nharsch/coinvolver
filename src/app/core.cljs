@@ -27,7 +27,7 @@
                    ["garage" "assets/audio/Parking Garage.wav"]
                    ["space" "assets/audio/On a Star.wav"]
                    ["opera" "assets/audio/opera.wav"]
-                   ["underwater" "assets/audio/underwater.wav"]
+                   ["water" "assets/audio/underwater.wav"]
                  ])
 
 
@@ -84,8 +84,10 @@
     (.connect (.connect source cnv) (.-destination context))
     (.start source)))
 
+
 (defn drag-handler [e]
   ; set source id in event data
+  ; TODO; change display state of other items
   (println "dragging " (.. e -target -id) " element")
   (.setData e.dataTransfer "src" (.. e -target -id)))
 
@@ -96,33 +98,26 @@
         cnv (.. e -target -id)]
     (play-sound-thru-conv src cnv)))
 
+(defn sound-component [name]
+  ^{:key (str "tr-" name)}
+  [:div {:on-click #(play-sound-by-name name)
+         :class "coin"
+         :draggable true
+         :onDragStart drag-handler
+         :onDrop drop-handler
+         :onDragOver (fn [e] (.preventDefault e))
+         :id name
+         }
+   [:span (subs name 0 9)]]
+  )
+
 (defn ui []
   [:div
    [:h1 "Coinvolver"]
-   [:h2 "sounds"]
    [:div {:class "sounds"}
-    (for [name ["cow" "bell" "cat" "opera"]]
-      ^{:key (str "tr-" name)}
-      [:button {:on-click #(play-sound-by-name name)
-                :draggable true
-                :onDragStart drag-handler
-                :onDrop drop-handler
-                :onDragOver (fn [e] (.preventDefault e))
-                :id name
-                }
-       name])]
-   [:h2 "spaces"]
-   [:div {:class "irs"}
-    (for [name ["space" "garage" "underwater"]]
-      ^{:key (str "tr-" name)}
-      [:button {:on-click #(play-sound-by-name name)
-                :draggable true
-                :onDragStart drag-handler
-                :onDrop drop-handler
-                :onDragOver (fn [e] (.preventDefault e))
-                :id name
-                }
-       name])]
+    (for [name (map first sound-paths)]
+      (sound-component name)
+)]
    [:div
     [:h3 "app state"]
     [:p [:code (str @app-state)]]
