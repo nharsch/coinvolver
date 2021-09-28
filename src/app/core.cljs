@@ -128,7 +128,7 @@
          :onDragOver  (fn [e] (.preventDefault e))
          :onDrop      drop-handler
          :id          name}
-   [:div {:class "text"} (subs name 0 9)]])
+   (subs name 0 2)])
 
 (defn ui []
   [:div
