@@ -1,5 +1,11 @@
-.sounds {
+h1, h2, div {
+    font-family: sans-serif;
+    font-weight: lighter;
+    text-align: center;
+}
+.sounds, .irs {
     float: none;
+    margin: 1em 1em;
 }
 .app-state {
     float: none;
@@ -9,18 +15,27 @@
     text-align: center;
     font-family: sans-serif;
     display: inline-block;
-    vertical-align: middle;
     background-repeat: no-repeat;
     width: 80px;
-    height: 80px;
     block-size: fit-content;
-    line-height: 80px;
 }
 
 .coin {
     background-image: url('../img/coin.png');
+    background-size: 40px, 40px;
+    background-position: center;
+    height: 80px;
+    line-height: 80px;
 }
 
 .slot {
-    background-image: url('../img/coin-slot-arrow.jpeg');
+    background-size: 80px 100px;
+    background-image: url('../img/cartoon-well.jpeg');
+    height: 100px;
+    padding-top: 65px;
+
+}
+
+.slot .text {
+    padding-right: 4px;
 }

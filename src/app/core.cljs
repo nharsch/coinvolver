@@ -14,6 +14,7 @@
 (defonce app-state (r/atom {
                             :audio-on false
                             :abuff-map {}
+                            :dragged-id nil
                             }))
 
 (defonce AudioContext js/window.AudioContext)
@@ -21,13 +22,12 @@
 
 
 (def sound-paths [
-                   ["cow" "assets/audio/cow.wav"]
-                   ["bell" "assets/audio/counter-bell.wav"]
-                   ["cat" "assets/audio/cat-meaow.wav"]
-                   ["garage" "assets/audio/Parking Garage.wav"]
-                   ["space" "assets/audio/On a Star.wav"]
-                   ["opera" "assets/audio/opera.wav"]
-                   ["water" "assets/audio/underwater.wav"]
+                   ["🐄" "assets/audio/cow.wav"]
+                   ["🔔" "assets/audio/counter-bell.wav"]
+                   ["🐈" "assets/audio/cat-meaow.wav"]
+                   ["🏛️" "assets/audio/Parking Garage.wav"]
+                   ["👨‍🎤" "assets/audio/opera.wav"]
+                   ["🌩️" "assets/audio/thunder-clap.wav"]
                  ])
 
 
@@ -68,8 +68,15 @@
 (defn create-convolver [abuff]
     (let [cnv (.createConvolver context)]
         (set! (.-buffer cnv) abuff)
-        (set! (.-normalize cnv) true)
         cnv))
+
+(defn create-comp []
+  (new js/DynamicsCompressorNode context (js-obj "attack" 1 "ratio" 20 "knee" 6 "threslhold" -35)))
+
+(defn create-gain [gain]
+  (new js/GainNode context (js-obj "gain" gain)))
+
+;; (.-value (.-ratio (create-comp)))
 
 (defn play-sound-by-name [name]
   (let [buffer (get-in @app-state [:abuff-map name])
@@ -79,49 +86,64 @@
 
 
 (defn play-sound-thru-conv [sound-name cnv-name]
-  (let [source (create-audio-source (get-in @app-state [:abuff-map sound-name]))
-        cnv (create-convolver (get-in @app-state [:abuff-map cnv-name]))]
-    (.connect (.connect source cnv) (.-destination context))
+  (let [state  @app-state
+        source (create-audio-source (get-in state [:abuff-map sound-name]))
+        cnv    (create-convolver (get-in state [:abuff-map cnv-name]))
+        comp   (create-comp)
+        gain   (create-gain 5)
+        ]
+    (-> source
+        (.connect cnv)
+        (.connect comp)
+        (.connect gain)
+        (.connect (.-destination  context)))
     (.start source)))
 
 
-(defn drag-handler [e]
-  ; set source id in event data
-  ; TODO; change display state of other items
-  (println "dragging " (.. e -target -id) " element")
+(defn drag-start-handler [e]
   (.setData e.dataTransfer "src" (.. e -target -id)))
 
+
 (defn drop-handler [e]
-  (println "dropping " (.. e -target -id) " element")
   (.preventDefault e)
   (let [src (.getData e.dataTransfer "src")
-        cnv (.. e -target -id)]
-    (play-sound-thru-conv src cnv)))
+         cnv (.. e -target -id)]
+     (play-sound-thru-conv src cnv)))
+
 
 (defn sound-component [name]
   ^{:key (str "tr-" name)}
-  [:div {:on-click #(play-sound-by-name name)
-         :class "coin"
-         :draggable true
-         :onDragStart drag-handler
-         :onDrop drop-handler
-         :onDragOver (fn [e] (.preventDefault e))
-         :id name
+  [:div {:on-click    #(play-sound-by-name name)
+         :class       "coin"
+         :draggable   true
+         :onDragStart drag-start-handler
+         :onDragOver  (fn [e] (.preventDefault e))
+         :id          name
          }
-   [:span (subs name 0 9)]]
-  )
+   [:div {:class "text"} (subs name 0 9)]])
+
+(defn ir-component [name]
+  ^{:key (str "tr-" name)}
+  [:div {:class       "slot"
+         :onDragOver  (fn [e] (.preventDefault e))
+         :onDrop      drop-handler
+         :id          name}
+   [:div {:class "text"} (subs name 0 9)]])
 
 (defn ui []
   [:div
    [:h1 "Coinvolver"]
+   [:h2 "Click coins to play sounds, drag into wells to mix sounds"]
    [:div {:class "sounds"}
     (for [name (map first sound-paths)]
-      (sound-component name)
-)]
-   [:div
-    [:h3 "app state"]
-    [:p [:code (str @app-state)]]
-    ]
+      (sound-component name))]
+   [:div {:class "irs"}
+    (for [name (map first sound-paths)]
+      (ir-component name))]
+   ;; [:div
+   ;;  [:h3 "app state"]
+   ;;  [:p [:code (str @app-state)]]
+   ;;  ]
    ]
   )
 
