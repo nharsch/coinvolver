@@ -3,12 +3,15 @@ h1, h2, div {
     font-weight: lighter;
     text-align: center;
 }
+
 .sounds, .irs {
     float: none;
 }
+
 .app-state {
     float: none;
 }
+
 .coin, .slot {
     background-size: contain;
     text-align: center;

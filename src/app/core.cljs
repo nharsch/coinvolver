@@ -33,12 +33,11 @@
 
 (defn load-sound-path [uri]
   (let [out (chan 1)]
-    (ajax/GET uri {:response-format {:type :arraybuffer
-                                    :read protocol/-body
-                                    :description "audio"
-                                    :content-type "audio/wave"
-                                    }
-                   :handler (fn [resp] (put! out resp))})  ; TODO: understand why we need put! here
+    (ajax/GET uri {:response-format {:type         :arraybuffer
+                                     :read         protocol/-body
+                                     :description  "audio"
+                                     :content-type "audio/wave"}
+                   :handler         (fn [resp] (put! out resp))})
     out))
 
 
@@ -75,8 +74,6 @@
 
 (defn create-gain [gain]
   (new js/GainNode context (js-obj "gain" gain)))
-
-;; (.-value (.-ratio (create-comp)))
 
 (defn play-sound-by-name [name]
   (let [buffer (get-in @app-state [:abuff-map name])
@@ -139,13 +136,7 @@
       (sound-component name))]
    [:div {:class "irs"}
     (for [name (map first sound-paths)]
-      (ir-component name))]
-   ;; [:div
-   ;;  [:h3 "app state"]
-   ;;  [:p [:code (str @app-state)]]
-   ;;  ]
-   ]
-  )
+      (ir-component name))]])
 
 
 (defn ^:dev/after-load start []
@@ -157,8 +148,5 @@
 
 (defn ^:export main []
     (start))
-
-(defn stop []
-  (println "Stopping..."))
 
 (start)
